@@ -143,11 +143,15 @@ const getallTask = async (req, res) => {
     if (user.role === "admin") {
       tasks = await Tasks.find().sort({ createdAt: -1 });
     } else {
-      tasks = await Tasks.find({ userId: user._id }).sort({ createdAt: -1 });
+      tasks = await Tasks.find({ creator_id: user._id }).sort({
+        createdAt: -1,
+      });
     }
 
     const { status } = req.query;
-    tasks = tasks.filter((task) => task.status === status);
+    if (status) {
+      tasks = tasks.filter((task) => task.status === status);
+    }
     res.status(200).json({
       status: "success",
       data: tasks,
