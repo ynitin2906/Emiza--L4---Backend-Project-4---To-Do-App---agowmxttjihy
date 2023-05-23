@@ -129,7 +129,7 @@ const getallTask = async (req, res) => {
   //Write your code here.
 
   try {
-    const user = await Users.findOne({ token: token });
+    const user = await Users.findOne({ _id: token });
     // if (!user) {
     //   return res.status(404).json({
     //     status: "error",
