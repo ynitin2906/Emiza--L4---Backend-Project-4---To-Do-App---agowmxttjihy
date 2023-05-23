@@ -1,86 +1,74 @@
-const Users   = require("../models/user.js");
+const Users = require("../models/user.js");
 const jwt = require("jsonwebtoken");
-const bcrypt  = require('bcrypt');
+const bcrypt = require("bcrypt");
 
 const saltRounds = 10;
 const JWT_SECRET = "newtonSchool";
 
+const loginUser = async (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
 
-const loginUser =async (req, res) => {
+  const user = await Users.findOne({ email: email });
 
-    const email  = req.body.email;
-    const password = req.body.password;
+  if (user) {
+    if (bcrypt.compareSync(password, user.password)) {
+      const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
+        expiresIn: "1h",
+      });
 
-    const user = await Users.findOne({ 'email':email });
-
-    if(user){
-
-        if(bcrypt.compareSync(password , user.password)){
-
-            const token = jwt.sign(
-                { userId: user._id },
-                JWT_SECRET,
-                {
-                    expiresIn: "1h",
-                }
-            );
-
-            res.status(200).json({
-                status: 'success',
-                token
-            });
-        }else{
-            res.status(403).json({
-                message: 'Invalid Password, try again !!',
-                status: 'fail'
-            });
-        }
-    }else{
-        res.status(404).json({
-            message: 'User with this E-mail does not exist !!',
-            status: 'fail'
-        });
+      res.status(200).json({
+        status: "success",
+        token,
+      });
+    } else {
+      res.status(403).json({
+        message: "Invalid Password, try again !!",
+        status: "fail",
+      });
     }
-
-}
-
+  } else {
+    res.status(404).json({
+      message: "User with this E-mail does not exist !!",
+      status: "fail",
+    });
+  }
+};
 
 const signupUser = async (req, res) => {
+  const { email, password, name, role } = req.body;
 
-    const {email, password, name, role} = req.body;
+  const user = await Users.findOne({ email });
+  if (user) {
+    res.status(409).json({
+      message: "User with given Email allready register",
+      status: "fail",
+    });
+  }
 
-    const user = await Users.findOne({ email });
-    if(user){
-        res.status(409).json({
-            message: 'User with given Email allready register',
-            status: 'fail'
-        });
-    }
+  const salt = bcrypt.genSaltSync(saltRounds);
+  const hashedPassword = bcrypt.hashSync(password, salt);
 
-    const salt = bcrypt.genSaltSync(saltRounds);
-    const hashedPassword = bcrypt.hashSync(password, salt);
+  const newuser = {
+    name,
+    email,
+    password: hashedPassword,
+    role,
+  };
 
-    const newuser = {
-        name,
-        email,
-        password: hashedPassword,
-        role
-    };
-
-    try{
-        await Users.create(newuser);
-        res.status(200).json({
-            message: 'User SignedUp successfully',
-            status: 'success'
-        });
-    } catch(err){
-        res.status(404).json({
-            status: 'fail',
-            message: 'Something went wrong'
-        });
-    }
-
-}
+  try {
+    await Users.create(newuser);
+    res.status(200).json({
+      message: "User SignedUp successfully",
+      status: "success",
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: "fail",
+      message: "Something went wrong",
+    });
+  }
+};
 
 /*
  You need to implement a logout controller which takes an token as input from req.body, verifies the token, clears the cookie and logs out the user.
@@ -105,11 +93,31 @@ const signupUser = async (req, res) => {
  }
  */
 
- const logout = (req, res) => {
-    const token = req.body.token;
+const logout = (req, res) => {
+  const token = req.body.token;
 
-    //Write your code here.
+  //Write your code here.
+  if (!token) {
+    return res.status(401).json({
+      status: "fail",
+      message: "Authentication failed: Missing token.",
+    });
+  }
+  try {
+    const decodedToken = jwt.verify(token, JWT_SECRET);
+    //cookie
+
+    return res.status(200).json({
+      status: "success",
+      message: "Logged out successfully.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      status: "fail",
+      error: error.message,
+    });
+  }
 };
 
-module.exports = { loginUser , signupUser, logout };
-
+module.exports = { loginUser, signupUser, logout };
