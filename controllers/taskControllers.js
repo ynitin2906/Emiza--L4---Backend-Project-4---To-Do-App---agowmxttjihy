@@ -129,7 +129,8 @@ const getallTask = async (req, res) => {
   //Write your code here.
 
   try {
-    const user = await Users.findOne({ _id: token });
+    const decodedToken = jwt.verify(token, JWT_SECRET);
+    const user = await Users.findOne(decodedToken.userId);
     // if (!user) {
     //   return res.status(404).json({
     //     status: "error",
